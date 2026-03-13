@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Shield,
   Star,
+  Lock,
 } from 'lucide-react';
 import type { BuyerProfile, Property, MatchResult } from '../types';
 import { PROPERTY_TYPE_LABELS } from '../types';
@@ -143,7 +144,7 @@ function ScoreBadge({ score, threshold, label }: { score: number; threshold: num
   const qualified = score >= threshold;
   return (
     <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
-      qualified ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+      qualified ? 'bg-emerald-950 text-emerald-400' : 'bg-red-950 text-red-400'
     }`}>
       {qualified ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
       <span>{label}: {score}/100</span>
@@ -155,13 +156,13 @@ function ScoreBar({ value, max, label }: { value: number; max: number; label: st
   const pct = Math.min((value / max) * 100, 100);
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-slate-500">
+      <div className="flex justify-between text-xs text-slate-400">
         <span>{label}</span>
         <span>{value}/{max}</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-100">
+      <div className="h-2 rounded-full bg-slate-700">
         <div
-          className="h-2 rounded-full bg-indigo-500 transition-all"
+          className="h-2 rounded-full bg-cyan-400 transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -177,9 +178,9 @@ function BuyerScoreCard({ buyer }: { buyer: BuyerProfile }) {
     : '0';
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-lg shadow-cyan-500/5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">Votre profil acheteur</h2>
+        <h2 className="text-lg font-semibold text-slate-100">Votre profil acheteur</h2>
         <ScoreBadge score={score} threshold={80} label={qualified ? 'Qualifié' : 'Non qualifié'} />
       </div>
 
@@ -194,20 +195,20 @@ function BuyerScoreCard({ buyer }: { buyer: BuyerProfile }) {
         <ScoreBar value={buyer.debt_ratio <= 33 ? 10 : 0} max={10} label={`Endettement (${buyer.debt_ratio}%)`} />
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-slate-50 p-3 text-center text-sm">
+      <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-slate-900 p-3 text-center text-sm">
         <div>
-          <p className="text-slate-500">Budget max</p>
-          <p className="font-semibold text-slate-800">
+          <p className="text-slate-400">Budget max</p>
+          <p className="font-semibold text-slate-100">
             {buyer.budget_max.toLocaleString('fr-CH')} CHF
           </p>
         </div>
         <div>
-          <p className="text-slate-500">Zone</p>
-          <p className="font-semibold text-slate-800">{buyer.desired_zone}</p>
+          <p className="text-slate-400">Zone</p>
+          <p className="font-semibold text-slate-100">{buyer.desired_zone}</p>
         </div>
         <div>
-          <p className="text-slate-500">Surface</p>
-          <p className="font-semibold text-slate-800">{buyer.desired_surface_m2} m²</p>
+          <p className="text-slate-400">Surface</p>
+          <p className="font-semibold text-slate-100">{buyer.desired_surface_m2} m²</p>
         </div>
       </div>
     </div>
@@ -218,14 +219,14 @@ function MatchCard({ result }: { result: MatchResult }) {
   const { property, matchScore, sellerScore, details } = result;
 
   return (
-    <div className="group rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md hover:border-indigo-200">
+    <div className="group rounded-2xl border border-slate-700 bg-slate-800 shadow-lg shadow-cyan-500/5 transition-all hover:shadow-cyan-500/10 hover:border-cyan-500/50">
       {/* Image placeholder */}
-      <div className="relative h-44 rounded-t-2xl bg-gradient-to-br from-indigo-100 to-slate-100 flex items-center justify-center">
-        <Home className="h-12 w-12 text-indigo-300" />
-        <div className="absolute top-3 right-3 rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-indigo-700 shadow-sm">
+      <div className="relative h-44 rounded-t-2xl bg-gradient-to-br from-cyan-950 to-slate-800 flex items-center justify-center">
+        <Home className="h-12 w-12 text-cyan-700" />
+        <div className="absolute top-3 right-3 rounded-full bg-slate-900/90 px-3 py-1 text-sm font-bold text-cyan-400 shadow-sm backdrop-blur-sm">
           {matchScore}%
         </div>
-        <div className="absolute top-3 left-3 rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white">
+        <div className="absolute top-3 left-3 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-600 px-2.5 py-1 text-xs font-medium text-slate-950">
           Off-Market
         </div>
       </div>
@@ -233,11 +234,11 @@ function MatchCard({ result }: { result: MatchResult }) {
       {/* Contenu */}
       <div className="p-4 space-y-3">
         <div>
-          <h3 className="font-semibold text-slate-800 leading-tight">{property.title}</h3>
-          <p className="mt-1 text-sm text-slate-500 line-clamp-1">{property.description}</p>
+          <h3 className="font-semibold text-slate-100 leading-tight">{property.title}</h3>
+          <p className="mt-1 text-sm text-slate-400 line-clamp-1">{property.description}</p>
         </div>
 
-        <div className="flex items-center gap-4 text-sm text-slate-600">
+        <div className="flex items-center gap-4 text-sm text-slate-400">
           <span className="flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" /> {property.zone}
           </span>
@@ -252,11 +253,11 @@ function MatchCard({ result }: { result: MatchResult }) {
         </div>
 
         <div className="flex items-baseline justify-between">
-          <span className="text-lg font-bold text-slate-800 flex items-center gap-1">
-            <BadgeSwissFranc className="h-5 w-5 text-slate-400" />
+          <span className="text-lg font-bold text-slate-100 flex items-center gap-1">
+            <BadgeSwissFranc className="h-5 w-5 text-cyan-500" />
             {property.price.toLocaleString('fr-CH')}
           </span>
-          <span className="text-xs rounded-full bg-slate-100 px-2 py-1 text-slate-500">
+          <span className="text-xs rounded-full bg-slate-700 px-2 py-1 text-slate-400">
             {PROPERTY_TYPE_LABELS[property.property_type]}
           </span>
         </div>
@@ -270,11 +271,11 @@ function MatchCard({ result }: { result: MatchResult }) {
         </div>
 
         {/* Score vendeur */}
-        <div className="flex items-center gap-2 text-xs text-slate-400 pt-1">
+        <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
           <Star className="h-3.5 w-3.5" />
           <span>Score vendeur : {sellerScore}/100</span>
-          <span className="ml-auto flex items-center gap-1">
-            <Shield className="h-3.5 w-3.5" /> Discret
+          <span className="ml-auto flex items-center gap-1 text-cyan-600">
+            <Lock className="h-3.5 w-3.5" /> Discret
           </span>
         </div>
       </div>
@@ -285,7 +286,7 @@ function MatchCard({ result }: { result: MatchResult }) {
 function CriteriaBadge({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-      ok ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+      ok ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-700 text-slate-500'
     }`}>
       {ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
       {label}
@@ -306,21 +307,25 @@ export default function Dashboard() {
   const buyerScore = calculateBuyerScore(buyer);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-950">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-800 bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
-              <Home className="h-5 w-5 text-white" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-cyan-600 shadow-lg shadow-cyan-500/25">
+              <Shield className="h-5 w-5 text-slate-950" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-800 leading-none">VaudMatch</h1>
-              <p className="text-xs text-slate-400">Immobilier off-market exclusif</p>
+              <h1 className="text-lg font-bold leading-none">
+                <span className="text-cyan-400">off</span>
+                <span className="text-slate-400">-</span>
+                <span className="text-slate-200">VAUD</span>
+              </h1>
+              <p className="text-xs text-slate-500">Immobilier off-market exclusif</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-500">
-            <TrendingUp className="h-4 w-4" />
+            <TrendingUp className="h-4 w-4 text-cyan-600" />
             <span>Canton de Vaud</span>
           </div>
         </div>
@@ -335,10 +340,10 @@ export default function Dashboard() {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-800">
+              <h2 className="text-lg font-semibold text-slate-100">
                 Vos Matches
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-400">
                 {matches.length} bien{matches.length > 1 ? 's' : ''} correspond{matches.length > 1 ? 'ent' : ''} à votre profil
                 (score acheteur : {buyerScore}/100)
               </p>
@@ -346,9 +351,9 @@ export default function Dashboard() {
           </div>
 
           {matches.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-              <XCircle className="mx-auto h-10 w-10 text-slate-300" />
-              <p className="mt-3 text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800 p-12 text-center">
+              <XCircle className="mx-auto h-10 w-10 text-slate-600" />
+              <p className="mt-3 text-slate-400">
                 {buyerScore < 80
                   ? 'Votre score acheteur est insuffisant (minimum 80/100). Complétez votre profil.'
                   : 'Aucun match trouvé pour le moment. De nouveaux biens arrivent régulièrement.'}
@@ -365,8 +370,11 @@ export default function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
-        VaudMatch MVP &mdash; Réseau immobilier off-market exclusif &mdash; Canton de Vaud
+      <footer className="mt-auto border-t border-slate-800 bg-slate-900 py-4 text-center text-xs text-slate-500">
+        <span className="text-cyan-500">off</span>
+        <span className="text-slate-600">-</span>
+        <span className="text-slate-400">VAUD</span>
+        {' '}&mdash; Réseau immobilier off-market exclusif &mdash; Canton de Vaud
       </footer>
     </div>
   );
