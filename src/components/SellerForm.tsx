@@ -202,14 +202,18 @@ export default function SellerForm() {
         {/* Score vendeur en temps réel */}
         <div className="mb-6 flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800 p-4">
           <div className={`flex h-16 w-16 items-center justify-center rounded-xl text-2xl font-bold ${
-            liveScore >= 70 ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-700 text-slate-400'
+            liveScore >= 75 ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-700 text-slate-400'
           }`}>
             {liveScore}
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-100">Score vendeur : {liveScore}/100</p>
+            <p className="text-sm font-medium text-slate-100">Score motivation : {liveScore}/100</p>
             <p className="text-xs text-slate-400">
-              {liveScore >= 70 ? 'Qualifié pour le matching' : 'Seuil requis : 70/100'}
+              {liveScore >= 85
+                ? 'Badge "Opportunité Rapide" affiché aux acheteurs'
+                : liveScore >= 75
+                  ? 'Badge "Vendeur Motivé" affiché aux acheteurs'
+                  : 'Votre bien sera visible — un score plus élevé le met en avant'}
             </p>
           </div>
         </div>

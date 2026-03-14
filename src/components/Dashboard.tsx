@@ -13,6 +13,8 @@ import {
   Lock,
   LogOut,
   Plus,
+  Flame,
+  Zap,
 } from 'lucide-react';
 import type { BuyerProfile, Property } from '../types';
 import { PROPERTY_TYPE_LABELS } from '../types';
@@ -179,6 +181,25 @@ function BuyerScoreCard({ buyer }: { buyer: BuyerProfile }) {
   );
 }
 
+function SellerBadge({ sellerScore }: { sellerScore: number }) {
+  if (sellerScore < 75) return null;
+
+  const isHighMotivation = sellerScore >= 85;
+
+  return (
+    <div className={`absolute bottom-3 left-3 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-sm shadow-sm ${
+      isHighMotivation
+        ? 'bg-orange-500/90 text-white'
+        : 'bg-amber-500/90 text-slate-900'
+    }`}>
+      {isHighMotivation
+        ? <><Zap className="h-3 w-3" /> Opportunit&eacute; Rapide</>
+        : <><Flame className="h-3 w-3" /> Vendeur Motiv&eacute;</>
+      }
+    </div>
+  );
+}
+
 function MatchCard({ result }: { result: MatchResult }) {
   const { property, matchScore, sellerScore, details } = result;
 
@@ -192,6 +213,7 @@ function MatchCard({ result }: { result: MatchResult }) {
         <div className="absolute top-3 left-3 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-600 px-2.5 py-1 text-xs font-medium text-slate-950">
           Off-Market
         </div>
+        <SellerBadge sellerScore={sellerScore} />
       </div>
 
       <div className="p-4 space-y-3">
@@ -225,7 +247,7 @@ function MatchCard({ result }: { result: MatchResult }) {
 
         <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
           <Star className="h-3.5 w-3.5" />
-          <span>Score vendeur : {sellerScore}/100</span>
+          <span>Motivation vendeur : {sellerScore}/100</span>
           <span className="ml-auto flex items-center gap-1 text-cyan-600">
             <Lock className="h-3.5 w-3.5" /> Discret
           </span>

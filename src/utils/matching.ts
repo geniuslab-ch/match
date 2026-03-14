@@ -7,8 +7,9 @@ import type { BuyerProfile, Property, SearchCriteria } from '../types';
 
 // === SEUILS ===
 const BUYER_SCORE_THRESHOLD = 80;
-const SELLER_SCORE_THRESHOLD = 70;
 const MATCH_SCORE_THRESHOLD = 70;
+// Note: Le Score Vendeur n'est PLUS un filtre d'exclusion.
+// Il sert uniquement au tri (ranking) et à l'affichage (badge "Vendeur Motivé").
 
 // ============================================================
 // 1. SCORING ACHETEUR (sur 100)
@@ -58,7 +59,7 @@ export function isBuyerQualified(buyer: BuyerProfile): boolean {
 // Ancienneté (jours)         → jusqu'à 20 points
 // Vente non-conditionnelle   → 20 points
 // Rareté (1-5)               → jusqu'à 20 points
-// Seuil : 70
+// Pas de seuil — utilisé pour le tri et l'affichage uniquement
 // ============================================================
 
 export function calculateSellerScore(property: Property): number {
@@ -83,8 +84,9 @@ export function calculateSellerScore(property: Property): number {
   return Math.round(score);
 }
 
-export function isSellerQualified(property: Property): boolean {
-  return calculateSellerScore(property) >= SELLER_SCORE_THRESHOLD;
+/** @deprecated Le score vendeur n'est plus un filtre d'exclusion. Conservé pour rétro-compatibilité. */
+export function isSellerQualified(_property: Property): boolean {
+  return true; // Tous les biens sont éligibles au matching
 }
 
 // ============================================================
@@ -230,21 +232,24 @@ export function findMatchesForBuyer(
   buyer: BuyerProfile,
   properties: Property[]
 ): MatchResult[] {
-  // Filtrer uniquement les biens actifs avec vendeurs qualifiés
-  const activeProperties = properties.filter(
-    (p) => p.is_active && isSellerQualified(p)
-  );
+  // Tous les biens actifs entrent dans l'algorithme (plus de filtre vendeur)
+  const activeProperties = properties.filter((p) => p.is_active);
 
-  // Vérifier que l'acheteur est qualifié
+  // L'acheteur DOIT être qualifié (score >= 80) pour voir les biens
   if (!isBuyerQualified(buyer)) {
     return [];
   }
 
-  // Calculer le score pour chaque propriété
+  // Calculer le score pour chaque propriété, filtrer les matches valides
   const results = activeProperties
     .map((property) => calculateMatchScore(buyer, property))
-    .filter((result) => result.isMatch)
-    .sort((a, b) => b.matchScore - a.matchScore);
+    .filter((result) => result.isMatch);
+
+  // Tri : Score vendeur décroissant en priorité, puis score de match
+  results.sort((a, b) => {
+    if (b.sellerScore !== a.sellerScore) return b.sellerScore - a.sellerScore;
+    return b.matchScore - a.matchScore;
+  });
 
   return results;
 }
