@@ -90,7 +90,7 @@ export interface Property {
   commercial_type?: string;
   situation?: string;
   exterior?: string[];
-  parking_type?: string;
+  parking_types?: string[];
   parking_quantity?: number;
   bonuses?: string[];
   urgency_level: number;
@@ -137,7 +137,6 @@ export const EXTERIOR_OPTIONS = [
 ];
 
 export const PARKING_TYPE_OPTIONS = [
-  { value: '', label: 'Aucun' },
   { value: 'ext', label: 'Place de parc extérieure' },
   { value: 'carport', label: 'Carport (Couvert à voitures)' },
   { value: 'collectif', label: 'Place en garage collectif / Box souterrain' },

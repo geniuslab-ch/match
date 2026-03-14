@@ -53,7 +53,7 @@ export default function SellerForm() {
     commercial_type: '' as CommercialType | '',
     situation: '' as SituationType | '',
     exterior: [] as string[],
-    parking_type: '',
+    parking_types: [] as string[],
     parking_quantity: '1',
     bonuses: [] as string[],
     urgency_level: '3',
@@ -79,7 +79,7 @@ export default function SellerForm() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function toggleArrayItem(field: 'exterior' | 'bonuses', item: string) {
+  function toggleArrayItem(field: 'exterior' | 'bonuses' | 'parking_types', item: string) {
     setForm((prev) => {
       const arr = prev[field];
       return {
@@ -148,8 +148,8 @@ export default function SellerForm() {
       if (form.exterior.length > 0) {
         payload.exterior = form.exterior;
       }
-      if (form.parking_type) {
-        payload.parking_type = form.parking_type;
+      if (form.parking_types.length > 0) {
+        payload.parking_types = form.parking_types;
         payload.parking_quantity = Number(form.parking_quantity) || 1;
       }
       if (form.bonuses.length > 0) {
@@ -461,34 +461,40 @@ export default function SellerForm() {
               Parking
             </h2>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-1 text-sm text-slate-400">Type de parking</label>
-                <select
-                  value={form.parking_type}
-                  onChange={(e) => update('parking_type', e.target.value)}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+            <div className="grid grid-cols-1 gap-2">
+              {PARKING_TYPE_OPTIONS.map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-all ${
+                    form.parking_types.includes(opt.value)
+                      ? 'border-cyan-500 bg-cyan-950/50 text-cyan-300'
+                      : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                  }`}
                 >
-                  {PARKING_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {form.parking_type && (
-                <div>
-                  <label className="mb-1 text-sm text-slate-400">Quantité</label>
                   <input
-                    type="number"
-                    value={form.parking_quantity}
-                    onChange={(e) => update('parking_quantity', e.target.value)}
-                    min={1}
-                    max={10}
-                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                    type="checkbox"
+                    checked={form.parking_types.includes(opt.value)}
+                    onChange={() => toggleArrayItem('parking_types', opt.value)}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
                   />
-                </div>
-              )}
+                  {opt.label}
+                </label>
+              ))}
             </div>
+
+            {form.parking_types.length > 0 && (
+              <div>
+                <label className="mb-1 text-sm text-slate-400">Nombre total de places</label>
+                <input
+                  type="number"
+                  value={form.parking_quantity}
+                  onChange={(e) => update('parking_quantity', e.target.value)}
+                  min={1}
+                  max={20}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
+            )}
           </section>
 
           {/* Bonus */}

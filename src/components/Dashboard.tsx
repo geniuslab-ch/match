@@ -255,6 +255,11 @@ export default function Dashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  async function handleSignOut() {
+    await signOut();
+    navigate('/auth', { replace: true });
+  }
+
   // Charger les données depuis Supabase ou utiliser les données démo
   useEffect(() => {
     async function loadData() {
@@ -331,7 +336,7 @@ export default function Dashboard() {
                   </button>
                 )}
                 <button
-                  onClick={signOut}
+                  onClick={handleSignOut}
                   className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-red-400"
                 >
                   <LogOut className="h-4 w-4" /> Déconnexion
