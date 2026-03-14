@@ -29,18 +29,55 @@ import urllib.parse
 
 
 QUERIES = [
+    # Grandes villes
     "agence immobilière Lausanne",
-    "agence immobilière Montreux Vevey",
+    "agence immobilière Yverdon-les-Bains",
+    "agence immobilière Montreux",
     "agence immobilière Nyon",
     "agence immobilière Morges",
-    "agence immobilière Yverdon-les-Bains",
-    "agence immobilière Renens Prilly",
-    "agence immobilière Pully Lutry",
-    "agence immobilière Aigle Bex",
-    "agence immobilière Rolle Gland",
-    "agence immobilière Payerne Moudon",
-    "agence immobilière Echallens Orbe",
+    "agence immobilière Vevey",
+    "agence immobilière Renens",
+    "agence immobilière Pully",
+    # Riviera / Chablais
+    "agence immobilière Aigle",
+    "agence immobilière Villeneuve Vaud",
+    "agence immobilière Bex Vaud",
+    "agence immobilière Leysin Vaud",
+    # La Côte
+    "agence immobilière Rolle",
+    "agence immobilière Gland Vaud",
+    "agence immobilière Coppet Vaud",
+    "agence immobilière Aubonne Vaud",
+    # Lausanne agglomération
+    "agence immobilière Lutry",
+    "agence immobilière Prilly Vaud",
+    "agence immobilière Bussigny Vaud",
+    "agence immobilière Crissier Vaud",
+    "agence immobilière Ecublens Vaud",
+    "agence immobilière Chavannes-près-Renens",
+    # Lavaux
+    "agence immobilière Cully Lavaux",
+    "agence immobilière Saint-Saphorin Lavaux",
+    # Nord vaudois
+    "agence immobilière Payerne",
+    "agence immobilière Moudon",
+    "agence immobilière Echallens",
+    "agence immobilière Orbe",
+    "agence immobilière Grandson Vaud",
+    "agence immobilière Chavornay Vaud",
+    "agence immobilière Sainte-Croix Vaud",
+    "agence immobilière Vallorbe",
+    # Gros-de-Vaud / Broye
+    "agence immobilière Cossonay",
+    "agence immobilière La Sarraz Vaud",
+    "agence immobilière Avenches Vaud",
+    # Vallée de Joux / Pays-d'Enhaut
+    "agence immobilière Le Sentier Vallée de Joux",
+    "agence immobilière Château-d'Oex",
+    # Recherches génériques
     "agence immobilière Canton de Vaud",
+    "régie immobilière Canton de Vaud",
+    "courtier immobilier Canton de Vaud",
 ]
 
 PLACES_TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
