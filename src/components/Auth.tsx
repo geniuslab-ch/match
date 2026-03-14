@@ -30,7 +30,7 @@ export default function Auth() {
       if (err) {
         setError(err);
       } else {
-        navigate(role === 'seller' ? '/seller/new' : '/dashboard');
+        navigate('/dashboard');
       }
       return;
     }
