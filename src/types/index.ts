@@ -39,6 +39,7 @@ export interface BuyerProfile {
   // Critères financiers
   personal_contribution: number;
   has_pre_approval: boolean;
+  pre_approval_doc_path?: string;
   debt_ratio: number;
   score: number;
   created_at: string;

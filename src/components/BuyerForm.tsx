@@ -14,6 +14,7 @@ import {
   Plus,
   Copy,
   Trash2,
+  MapPin,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -21,6 +22,7 @@ import { calculateBuyerScore } from '../utils/matching';
 import { PROPERTY_TYPE_LABELS } from '../types';
 import type { PropertyType, BuyerProfile } from '../types';
 import CommuneSelect from './CommuneSelect';
+import DocumentUpload from './DocumentUpload';
 
 interface CriteriaForm {
   desired_zone: string;
@@ -53,6 +55,7 @@ export default function BuyerForm() {
     debt_ratio: '',
   });
 
+  const [preApprovalDocPath, setPreApprovalDocPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -146,6 +149,7 @@ export default function BuyerForm() {
       desired_surface_m2: Number(primary.desired_surface_min_m2) || 0,
       personal_contribution: Number(financials.personal_contribution),
       has_pre_approval: financials.has_pre_approval,
+      pre_approval_doc_path: preApprovalDocPath || null,
       debt_ratio: Number(financials.debt_ratio),
       score: liveScore,
       search_criteria: criteriaList.map((c) => ({
@@ -484,6 +488,14 @@ export default function BuyerForm() {
                 </p>
               </div>
             </label>
+
+            {/* Upload document pré-approbation */}
+            {financials.has_pre_approval && (
+              <DocumentUpload
+                existingPath={preApprovalDocPath || undefined}
+                onUploadComplete={(path) => setPreApprovalDocPath(path)}
+              />
+            )}
           </section>
 
           {/* Submit */}
