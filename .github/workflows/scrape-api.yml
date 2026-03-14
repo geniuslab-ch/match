@@ -6,7 +6,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    environment: production
+    environment: Production
     timeout-minutes: 5
 
     steps:
