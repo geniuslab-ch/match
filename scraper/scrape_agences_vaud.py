@@ -153,71 +153,69 @@ def extract_place_details(page, link) -> dict | None:
     return details if details["nom"] else None
 
 
-def scrape(headless: bool = True, max_scrolls: int = 40) -> list[dict]:
-    """Exécute le scraping complet et retourne la liste des agences."""
-    results = []
-
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=headless)
-        context = browser.new_context(
-            locale="fr-CH",
-            viewport={"width": 1280, "height": 900},
-        )
-        page = context.new_page()
-
-        print(f"Recherche : '{SEARCH_QUERY}'")
-        search_google_maps(page, SEARCH_QUERY)
-
-        print("Défilement des résultats…")
-        scroll_results(page, max_scrolls=max_scrolls)
-
-        # Collecte des liens de résultats
-        links = page.locator(RESULT_LINKS)
-        total = links.count()
-        print(f"\n{total} résultats trouvés. Extraction des détails…\n")
-
-        for idx in range(total):
-            # Re-query : le DOM change après chaque clic + retour
-            current_links = page.locator(RESULT_LINKS)
-            if idx >= current_links.count():
-                break
-
-            link = current_links.nth(idx)
-            details = extract_place_details(page, link)
-
-            if details:
-                results.append(details)
-                print(
-                    f"  [{idx + 1}/{total}] {details['nom']} — "
-                    f"{details['adresse'][:40]}…"
-                )
-
-            # Retour à la liste de résultats
-            try:
-                back_btn = page.locator('button[aria-label="Retour"], button[jsaction*="back"]')
-                if back_btn.count() > 0:
-                    back_btn.first.click()
-                    page.wait_for_timeout(1500)
-                else:
-                    page.go_back()
-                    page.wait_for_timeout(2000)
-            except Exception:
-                page.go_back()
-                page.wait_for_timeout(2000)
-
-        browser.close()
-
-    return results
-
-
-def save_csv(results: list[dict], filepath: str):
-    """Exporte les résultats au format CSV."""
+def scrape(headless: bool = True, max_scrolls: int = 40, output: str = "agences_immobilieres_vaud.csv"):
+    """Exécute le scraping complet avec écriture incrémentale du CSV."""
     fieldnames = ["nom", "adresse", "telephone", "site_web"]
-    with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
+    count = 0
+
+    with open(output, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=";")
         writer.writeheader()
-        writer.writerows(results)
-    print(f"\n{len(results)} agences exportées → {filepath}")
+
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=headless)
+            context = browser.new_context(
+                locale="fr-CH",
+                viewport={"width": 1280, "height": 900},
+            )
+            page = context.new_page()
+
+            print(f"Recherche : '{SEARCH_QUERY}'")
+            search_google_maps(page, SEARCH_QUERY)
+
+            print("Défilement des résultats…")
+            scroll_results(page, max_scrolls=max_scrolls)
+
+            # Collecte des liens de résultats
+            links = page.locator(RESULT_LINKS)
+            total = links.count()
+            print(f"\n{total} résultats trouvés. Extraction des détails…\n")
+
+            for idx in range(total):
+                # Re-query : le DOM change après chaque clic + retour
+                current_links = page.locator(RESULT_LINKS)
+                if idx >= current_links.count():
+                    break
+
+                link = current_links.nth(idx)
+                details = extract_place_details(page, link)
+
+                if details:
+                    writer.writerow(details)
+                    f.flush()
+                    count += 1
+                    print(
+                        f"  [{idx + 1}/{total}] {details['nom']} — "
+                        f"{details['adresse'][:40]}…"
+                    )
+
+                # Retour à la liste de résultats
+                try:
+                    back_btn = page.locator('button[aria-label="Retour"], button[jsaction*="back"]')
+                    if back_btn.count() > 0:
+                        back_btn.first.click()
+                        page.wait_for_timeout(1500)
+                    else:
+                        page.go_back()
+                        page.wait_for_timeout(2000)
+                except Exception:
+                    page.go_back()
+                    page.wait_for_timeout(2000)
+
+            browser.close()
+
+    print(f"\n{count} agences exportées → {output}")
+    return count
 
 
 def main():
@@ -243,11 +241,9 @@ def main():
     )
     args = parser.parse_args()
 
-    results = scrape(headless=args.headless, max_scrolls=args.max_scrolls)
+    count = scrape(headless=args.headless, max_scrolls=args.max_scrolls, output=args.output)
 
-    if results:
-        save_csv(results, args.output)
-    else:
+    if count == 0:
         print("Aucun résultat extrait.", file=sys.stderr)
         sys.exit(1)
 
