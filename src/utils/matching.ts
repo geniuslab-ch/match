@@ -1,4 +1,4 @@
-import type { BuyerProfile, Property } from '../types';
+import type { BuyerProfile, Property, SearchCriteria } from '../types';
 
 // ============================================================
 // ALGORITHME DE MATCHING - Réseau Immobilier Off-Market
@@ -93,7 +93,7 @@ export function isSellerQualified(property: Property): boolean {
 // Zone OK                          → +20
 // Prix <= Budget                   → +30
 // Type de bien OK                  → +20
-// Surface ±10m²                    → +10
+// Surface dans fourchette          → +10
 // + (Score Acheteur * 0.1)         → jusqu'à +10
 // + (Score Vendeur * 0.1)          → jusqu'à +10
 // Match si Score Global >= 70
@@ -105,11 +105,77 @@ export interface MatchResult {
   buyerScore: number;
   sellerScore: number;
   isMatch: boolean;
+  matchedCriteriaIndex?: number;
   details: {
     zoneMatch: boolean;
     priceMatch: boolean;
     typeMatch: boolean;
     surfaceMatch: boolean;
+  };
+}
+
+// Vérifie si la surface du bien est dans la fourchette souhaitée
+function checkSurfaceMatch(
+  propertySurface: number,
+  minSurface: number,
+  maxSurface: number
+): boolean {
+  const hasMin = minSurface > 0;
+  const hasMax = maxSurface > 0;
+
+  if (hasMin && hasMax) {
+    return propertySurface >= minSurface && propertySurface <= maxSurface;
+  }
+  if (hasMin) {
+    return propertySurface >= minSurface;
+  }
+  if (hasMax) {
+    return propertySurface <= maxSurface;
+  }
+  // Aucune contrainte de surface = toujours OK
+  return true;
+}
+
+// Match avec un critère de recherche spécifique
+function calculateMatchWithCriteria(
+  buyer: BuyerProfile,
+  property: Property,
+  criteria: SearchCriteria,
+  buyerScore: number,
+  sellerScore: number
+): { matchScore: number; details: { zoneMatch: boolean; priceMatch: boolean; typeMatch: boolean; surfaceMatch: boolean } } {
+  let matchScore = 0;
+
+  // Zone OK (+20)
+  const zoneMatch =
+    criteria.desired_zone.toLowerCase() === property.zone.toLowerCase();
+  if (zoneMatch) matchScore += 20;
+
+  // Prix <= Budget (+30)
+  const priceMatch = property.price <= criteria.budget_max;
+  if (priceMatch) matchScore += 30;
+
+  // Type de bien OK (+20)
+  const typeMatch = criteria.desired_property_type === property.property_type;
+  if (typeMatch) matchScore += 20;
+
+  // Surface dans fourchette (+10)
+  const surfaceMatch = checkSurfaceMatch(
+    property.surface_m2,
+    criteria.desired_surface_min_m2,
+    criteria.desired_surface_max_m2
+  );
+  if (surfaceMatch) matchScore += 10;
+
+  // Bonus scores
+  matchScore += buyerScore * 0.1;
+  matchScore += sellerScore * 0.1;
+
+  matchScore = Math.round(matchScore);
+
+  return {
+    matchScore,
+    details: { zoneMatch, priceMatch, typeMatch, surfaceMatch },
   };
 }
 
@@ -120,44 +186,39 @@ export function calculateMatchScore(
   const buyerScore = calculateBuyerScore(buyer);
   const sellerScore = calculateSellerScore(property);
 
-  let matchScore = 0;
+  // Si le profil a des critères multiples, on teste chacun et on garde le meilleur
+  const criteria = buyer.search_criteria && buyer.search_criteria.length > 0
+    ? buyer.search_criteria
+    : [{
+        desired_zone: buyer.desired_zone,
+        desired_property_type: buyer.desired_property_type,
+        budget_max: buyer.budget_max,
+        desired_surface_min_m2: buyer.desired_surface_m2 > 0 ? buyer.desired_surface_m2 - 10 : 0,
+        desired_surface_max_m2: buyer.desired_surface_m2 > 0 ? buyer.desired_surface_m2 + 10 : 0,
+      }];
 
-  // Zone OK (+20)
-  const zoneMatch =
-    buyer.desired_zone.toLowerCase() === property.zone.toLowerCase();
-  if (zoneMatch) matchScore += 20;
+  let bestResult = {
+    matchScore: 0,
+    details: { zoneMatch: false, priceMatch: false, typeMatch: false, surfaceMatch: false },
+  };
+  let bestCriteriaIndex = 0;
 
-  // Prix <= Budget (+30)
-  const priceMatch = property.price <= buyer.budget_max;
-  if (priceMatch) matchScore += 30;
-
-  // Type de bien OK (+20)
-  const typeMatch = buyer.desired_property_type === property.property_type;
-  if (typeMatch) matchScore += 20;
-
-  // Surface ±10m² (+10)
-  const surfaceMatch =
-    Math.abs(property.surface_m2 - buyer.desired_surface_m2) <= 10;
-  if (surfaceMatch) matchScore += 10;
-
-  // Bonus scores
-  matchScore += buyerScore * 0.1;
-  matchScore += sellerScore * 0.1;
-
-  matchScore = Math.round(matchScore);
+  for (let i = 0; i < criteria.length; i++) {
+    const result = calculateMatchWithCriteria(buyer, property, criteria[i], buyerScore, sellerScore);
+    if (result.matchScore > bestResult.matchScore) {
+      bestResult = result;
+      bestCriteriaIndex = i;
+    }
+  }
 
   return {
     property,
-    matchScore,
+    matchScore: bestResult.matchScore,
     buyerScore,
     sellerScore,
-    isMatch: matchScore >= MATCH_SCORE_THRESHOLD,
-    details: {
-      zoneMatch,
-      priceMatch,
-      typeMatch,
-      surfaceMatch,
-    },
+    isMatch: bestResult.matchScore >= MATCH_SCORE_THRESHOLD,
+    matchedCriteriaIndex: bestCriteriaIndex,
+    details: bestResult.details,
   };
 }
 

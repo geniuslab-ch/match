@@ -16,13 +16,27 @@ export interface User {
   updated_at: string;
 }
 
+// Critère de recherche individuel (un acheteur peut en avoir plusieurs)
+export interface SearchCriteria {
+  id?: string;
+  desired_zone: string;
+  desired_property_type: PropertyType;
+  budget_max: number;
+  desired_surface_min_m2: number;
+  desired_surface_max_m2: number;
+}
+
 export interface BuyerProfile {
   id: string;
   user_id: string;
+  // Critères de recherche multiples
+  search_criteria: SearchCriteria[];
+  // Anciens champs conservés pour rétro-compatibilité lecture
   desired_zone: string;
   desired_property_type: PropertyType;
   budget_max: number;
   desired_surface_m2: number;
+  // Critères financiers
   personal_contribution: number;
   has_pre_approval: boolean;
   debt_ratio: number;
@@ -74,6 +88,7 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   commercial: 'Commercial',
 };
 
+// Conservé pour rétro-compatibilité, mais préférer VAUD_COMMUNES
 export const ZONE_OPTIONS = [
   'Lausanne',
   'Morges',

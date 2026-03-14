@@ -33,6 +33,15 @@ const DEMO_BUYER: BuyerProfile = {
   desired_property_type: 'apartment',
   budget_max: 950000,
   desired_surface_m2: 85,
+  search_criteria: [
+    {
+      desired_zone: 'Lausanne',
+      desired_property_type: 'apartment',
+      budget_max: 950000,
+      desired_surface_min_m2: 70,
+      desired_surface_max_m2: 100,
+    },
+  ],
   personal_contribution: 200000,
   has_pre_approval: true,
   debt_ratio: 28,
@@ -118,20 +127,54 @@ function BuyerScoreCard({ buyer }: { buyer: BuyerProfile }) {
         <ScoreBar value={buyer.debt_ratio <= 33 ? 10 : 0} max={10} label={`Endettement (${buyer.debt_ratio}%)`} />
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-slate-900 p-3 text-center text-sm">
-        <div>
-          <p className="text-slate-400">Budget max</p>
-          <p className="font-semibold text-slate-100">{buyer.budget_max.toLocaleString('fr-CH')} CHF</p>
+      {/* Afficher les critères de recherche */}
+      {buyer.search_criteria && buyer.search_criteria.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          {buyer.search_criteria.map((c, i) => (
+            <div key={i} className="grid grid-cols-4 gap-3 rounded-lg bg-slate-900 p-3 text-center text-sm">
+              <div>
+                <p className="text-slate-400 text-xs">Critère {i + 1}</p>
+                <p className="font-semibold text-cyan-400 text-xs">{c.desired_zone}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs">Budget max</p>
+                <p className="font-semibold text-slate-100 text-xs">{c.budget_max.toLocaleString('fr-CH')} CHF</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs">Type</p>
+                <p className="font-semibold text-slate-100 text-xs">{PROPERTY_TYPE_LABELS[c.desired_property_type]}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs">Surface</p>
+                <p className="font-semibold text-slate-100 text-xs">
+                  {c.desired_surface_min_m2 > 0 && c.desired_surface_max_m2 > 0
+                    ? `${c.desired_surface_min_m2}-${c.desired_surface_max_m2} m²`
+                    : c.desired_surface_min_m2 > 0
+                      ? `≥ ${c.desired_surface_min_m2} m²`
+                      : c.desired_surface_max_m2 > 0
+                        ? `≤ ${c.desired_surface_max_m2} m²`
+                        : 'Toute surface'}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
-        <div>
-          <p className="text-slate-400">Zone</p>
-          <p className="font-semibold text-slate-100">{buyer.desired_zone}</p>
+      ) : (
+        <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg bg-slate-900 p-3 text-center text-sm">
+          <div>
+            <p className="text-slate-400">Budget max</p>
+            <p className="font-semibold text-slate-100">{buyer.budget_max.toLocaleString('fr-CH')} CHF</p>
+          </div>
+          <div>
+            <p className="text-slate-400">Zone</p>
+            <p className="font-semibold text-slate-100">{buyer.desired_zone}</p>
+          </div>
+          <div>
+            <p className="text-slate-400">Surface</p>
+            <p className="font-semibold text-slate-100">{buyer.desired_surface_m2} m²</p>
+          </div>
         </div>
-        <div>
-          <p className="text-slate-400">Surface</p>
-          <p className="font-semibold text-slate-100">{buyer.desired_surface_m2} m²</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

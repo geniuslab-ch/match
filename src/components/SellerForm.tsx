@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield,
   BadgeSwissFranc,
-  MapPin,
   Home,
   Ruler,
   ArrowLeft,
@@ -18,8 +17,9 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { calculateSellerScore } from '../utils/matching';
-import { PROPERTY_TYPE_LABELS, ZONE_OPTIONS } from '../types';
+import { PROPERTY_TYPE_LABELS } from '../types';
 import type { PropertyType, Property } from '../types';
+import CommuneSelect from './CommuneSelect';
 
 export default function SellerForm() {
   const { user } = useAuth();
@@ -187,17 +187,12 @@ export default function SellerForm() {
 
               <div>
                 <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
-                  <MapPin className="h-3.5 w-3.5" /> Zone
+                  Zone
                 </label>
-                <select
+                <CommuneSelect
                   value={form.zone}
-                  onChange={(e) => update('zone', e.target.value)}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
-                >
-                  {ZONE_OPTIONS.map((z) => (
-                    <option key={z} value={z}>{z}</option>
-                  ))}
-                </select>
+                  onChange={(v) => update('zone', v)}
+                />
               </div>
 
               <div>
