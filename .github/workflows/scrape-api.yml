@@ -1,0 +1,49 @@
+name: Scrape agences (API Google Places)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify API key
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_PLACES_API_KEY" ]; then
+            echo "::error::Le secret GOOGLE_PLACES_API_KEY n'est pas configuré."
+            echo ""
+            echo "=== COMMENT CONFIGURER ==="
+            echo "1. GitHub → Settings → Secrets and variables → Actions"
+            echo "2. New repository secret"
+            echo "3. Name: GOOGLE_PLACES_API_KEY"
+            echo "4. Secret: votre clé API Google Places"
+            exit 1
+          fi
+          echo "Clé API OK (${#GOOGLE_PLACES_API_KEY} caractères)"
+
+      - name: Run scraper
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: |
+          python scraper/scrape_places_api.py \
+            --output agences_immobilieres_vaud.csv
+
+      - name: Upload CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agences-immobilieres-vaud
+          path: agences_immobilieres_vaud.csv
+          retention-days: 30
