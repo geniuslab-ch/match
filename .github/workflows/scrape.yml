@@ -26,11 +26,34 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Verify API key is configured
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_PLACES_API_KEY" ]; then
+            echo "::error::Le secret GOOGLE_PLACES_API_KEY n'est pas configuré."
+            echo ""
+            echo "=== COMMENT CONFIGURER ==="
+            echo "1. Allez sur GitHub → votre repo → Settings → Secrets and variables → Actions"
+            echo "2. Cliquez 'New repository secret'"
+            echo "3. Name: GOOGLE_PLACES_API_KEY"
+            echo "4. Secret: collez votre clé API Google Places"
+            echo ""
+            echo "=== COMMENT OBTENIR LA CLÉ ==="
+            echo "1. https://console.cloud.google.com/"
+            echo "2. Créez un projet → Activez 'Places API (New)'"
+            echo "3. Menu Identifiants → Créer des identifiants → Clé API"
+            exit 1
+          fi
+          echo "Clé API trouvée (${#GOOGLE_PLACES_API_KEY} caractères)"
 
       - name: Run Google Places API scraper
         env:

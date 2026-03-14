@@ -75,7 +75,21 @@ def search_places(query: str, api_key: str) -> list[dict]:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8", errors="replace")
-        print(f"Erreur API ({e.code}) pour '{query}': {error_body}", file=sys.stderr)
+        print(f"Erreur API ({e.code}) pour '{query}':", file=sys.stderr)
+        print(f"  Réponse: {error_body}", file=sys.stderr)
+        if e.code == 403:
+            print(
+                "  → Vérifiez que 'Places API (New)' est activée dans Google Cloud Console\n"
+                "  → Vérifiez que la facturation est activée sur le projet",
+                file=sys.stderr,
+            )
+        elif e.code == 400:
+            print("  → La clé API est peut-être invalide ou le format de requête incorrect", file=sys.stderr)
+        elif e.code == 429:
+            print("  → Quota dépassé, réessayez plus tard", file=sys.stderr)
+        return []
+    except urllib.error.URLError as e:
+        print(f"Erreur réseau pour '{query}': {e.reason}", file=sys.stderr)
         return []
 
     results = []
@@ -141,11 +155,16 @@ def main():
     if not args.api_key:
         print(
             "ERREUR : clé API manquante.\n"
-            "Utilisez --api-key VOTRE_CLE ou définissez GOOGLE_PLACES_API_KEY.",
+            "Utilisez --api-key VOTRE_CLE ou définissez GOOGLE_PLACES_API_KEY.\n\n"
+            "Pour obtenir une clé :\n"
+            "  1. https://console.cloud.google.com/\n"
+            "  2. Créez un projet → Activez 'Places API (New)'\n"
+            "  3. Identifiants → Créer → Clé API",
             file=sys.stderr,
         )
         sys.exit(1)
 
+    print(f"Clé API : {args.api_key[:8]}...{args.api_key[-4:]} ({len(args.api_key)} car.)")
     count = scrape(api_key=args.api_key, output=args.output)
 
     if count == 0:
