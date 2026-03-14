@@ -13,12 +13,20 @@ import {
   Clock,
   FileText,
   DoorOpen,
+  Building2,
+  MapPin,
+  Info,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { calculateSellerScore } from '../utils/matching';
-import { PROPERTY_TYPE_LABELS } from '../types';
-import type { PropertyType, Property } from '../types';
+import {
+  PROPERTY_TYPE_LABELS,
+  SITUATION_LABELS,
+  HOUSE_TYPE_LABELS,
+  COMMERCIAL_TYPE_LABELS,
+} from '../types';
+import type { PropertyType, SituationType, HouseType, CommercialType, Property } from '../types';
 import CommuneSelect from './CommuneSelect';
 
 export default function SellerForm() {
@@ -33,9 +41,14 @@ export default function SellerForm() {
     price: '',
     surface_m2: '',
     rooms: '',
+    floor: '',
+    house_type: '' as HouseType | '',
+    commercial_type: '' as CommercialType | '',
+    situation: '' as SituationType | '',
     urgency_level: '3',
     listing_age_days: '0',
     is_conditional_sale: false,
+    conditional_sale_details: '',
     rarity_score: '3',
   });
 
@@ -57,7 +70,11 @@ export default function SellerForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase || !user) return;
+
+    if (!supabase || !user) {
+      setError('Vous devez être connecté pour publier un bien.');
+      return;
+    }
 
     setError(null);
     setLoading(true);
@@ -71,9 +88,14 @@ export default function SellerForm() {
       price: Number(form.price),
       surface_m2: Number(form.surface_m2),
       rooms: form.rooms ? Number(form.rooms) : null,
+      floor: form.property_type === 'apartment' && form.floor ? Number(form.floor) : null,
+      house_type: ['house', 'villa'].includes(form.property_type) && form.house_type ? form.house_type : null,
+      commercial_type: form.property_type === 'commercial' && form.commercial_type ? form.commercial_type : null,
+      situation: form.situation || null,
       urgency_level: Number(form.urgency_level),
       listing_age_days: Number(form.listing_age_days),
       is_conditional_sale: form.is_conditional_sale,
+      conditional_sale_details: form.is_conditional_sale && form.conditional_sale_details ? form.conditional_sale_details : null,
       rarity_score: Number(form.rarity_score),
       score: liveScore,
     };
@@ -195,6 +217,78 @@ export default function SellerForm() {
                 />
               </div>
 
+              {/* Champ Étage — Appartement uniquement */}
+              {form.property_type === 'apartment' && (
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
+                    <Building2 className="h-3.5 w-3.5" /> Étage
+                  </label>
+                  <input
+                    type="number"
+                    value={form.floor}
+                    onChange={(e) => update('floor', e.target.value)}
+                    placeholder="3"
+                    min={-2}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Type de maison — Maison / Villa */}
+              {(form.property_type === 'house' || form.property_type === 'villa') && (
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
+                    <Home className="h-3.5 w-3.5" /> Type de maison
+                  </label>
+                  <select
+                    value={form.house_type}
+                    onChange={(e) => update('house_type', e.target.value)}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                  >
+                    <option value="">Sélectionner...</option>
+                    {Object.entries(HOUSE_TYPE_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Type de local — Commercial */}
+              {form.property_type === 'commercial' && (
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
+                    <Building2 className="h-3.5 w-3.5" /> Type de local
+                  </label>
+                  <select
+                    value={form.commercial_type}
+                    onChange={(e) => update('commercial_type', e.target.value)}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                  >
+                    <option value="">Sélectionner...</option>
+                    {Object.entries(COMMERCIAL_TYPE_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Situation — Tous types */}
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
+                  <MapPin className="h-3.5 w-3.5" /> Situation
+                </label>
+                <select
+                  value={form.situation}
+                  onChange={(e) => update('situation', e.target.value)}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                >
+                  <option value="">Sélectionner...</option>
+                  {Object.entries(SITUATION_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
                   <BadgeSwissFranc className="h-3.5 w-3.5" /> Prix (CHF)
@@ -301,22 +395,50 @@ export default function SellerForm() {
             </div>
 
             {/* Vente conditionnelle */}
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all border-slate-600 bg-slate-900">
-              <input
-                type="checkbox"
-                checked={form.is_conditional_sale}
-                onChange={(e) => update('is_conditional_sale', e.target.checked)}
-                className="h-5 w-5 rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
-              />
-              <div>
-                <p className={`text-sm font-medium ${form.is_conditional_sale ? 'text-red-400' : 'text-slate-300'}`}>
-                  Vente conditionnelle
-                </p>
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition-all border-slate-600 bg-slate-900">
+                <input
+                  type="checkbox"
+                  checked={form.is_conditional_sale}
+                  onChange={(e) => update('is_conditional_sale', e.target.checked)}
+                  className="h-5 w-5 rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                />
+                <div>
+                  <p className={`text-sm font-medium ${form.is_conditional_sale ? 'text-red-400' : 'text-slate-300'}`}>
+                    Vente conditionnelle
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {form.is_conditional_sale ? '-20 pts (réduit le score)' : 'Non coché = +20 pts'}
+                  </p>
+                </div>
+              </label>
+
+              {/* Explication vente conditionnelle */}
+              <div className="flex items-start gap-2 rounded-lg bg-slate-900/50 px-4 py-3">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-cyan-500/70" />
                 <p className="text-xs text-slate-500">
-                  {form.is_conditional_sale ? '-20 pts (réduit le score)' : 'Non coché = +20 pts'}
+                  Une <strong className="text-slate-400">vente conditionnelle</strong> signifie que la vente est soumise à une ou plusieurs conditions suspensives
+                  (ex : obtention d'un permis de construire, vente préalable d'un autre bien, accord d'une copropriété, succession en cours, etc.).
+                  Cela peut ralentir le processus de transaction et réduit le score vendeur de 20 points.
                 </p>
               </div>
-            </label>
+
+              {/* Détails vente conditionnelle */}
+              {form.is_conditional_sale && (
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
+                    Précisions sur les conditions
+                  </label>
+                  <textarea
+                    value={form.conditional_sale_details}
+                    onChange={(e) => update('conditional_sale_details', e.target.value)}
+                    placeholder="Précisez les conditions de la vente (ex : en attente du permis de construire, vente d'un autre bien en cours...)"
+                    rows={3}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none resize-none"
+                  />
+                </div>
+              )}
+            </div>
           </section>
 
           {/* Submit */}

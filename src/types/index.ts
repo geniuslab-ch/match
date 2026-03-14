@@ -45,6 +45,35 @@ export interface BuyerProfile {
   updated_at: string;
 }
 
+export type SituationType = 'hyper_centre' | 'peripherie_urbaine' | 'banlieue_proche' | 'village' | 'zone_rurbaine';
+export type HouseType = 'individuelle' | 'jumelee' | 'contigue' | 'maitre' | 'autre';
+export type CommercialType = 'bureau' | 'commerce' | 'atelier' | 'depot' | 'restaurant' | 'autre';
+
+export const SITUATION_LABELS: Record<SituationType, string> = {
+  hyper_centre: 'Bien Hyper-Centré',
+  peripherie_urbaine: 'Périphérie Urbaine',
+  banlieue_proche: 'Banlieue Proche',
+  village: 'Le Village',
+  zone_rurbaine: 'Zone Rurbaine',
+};
+
+export const HOUSE_TYPE_LABELS: Record<HouseType, string> = {
+  individuelle: 'Individuelle',
+  jumelee: 'Jumelée',
+  contigue: 'Contiguë',
+  maitre: 'Maison de Maître',
+  autre: 'Autre',
+};
+
+export const COMMERCIAL_TYPE_LABELS: Record<CommercialType, string> = {
+  bureau: 'Bureau',
+  commerce: 'Commerce',
+  atelier: 'Atelier',
+  depot: 'Dépôt',
+  restaurant: 'Restaurant',
+  autre: 'Autre',
+};
+
 export interface Property {
   id: string;
   seller_id: string;
@@ -56,9 +85,14 @@ export interface Property {
   surface_m2: number;
   rooms?: number;
   image_url?: string;
+  floor?: number;
+  house_type?: string;
+  commercial_type?: string;
+  situation?: string;
   urgency_level: number;
   listing_age_days: number;
   is_conditional_sale: boolean;
+  conditional_sale_details?: string;
   rarity_score: number;
   score: number;
   is_active: boolean;
