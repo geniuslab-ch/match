@@ -7,7 +7,7 @@ interface AuthState {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<string | null>;
+  signUp: (email: string, password: string, fullName: string, pseudo: string, role: UserRole) => Promise<string | null>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
@@ -19,8 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Charger le profil utilisateur depuis la table `users`
-  async function fetchUser(authId: string) {
+  async function fetchUser(authId: string): Promise<User | null> {
     if (!supabase) return null;
     const { data } = await supabase
       .from('users')
@@ -30,13 +29,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data as User | null;
   }
 
+  // Attendre que le trigger crée le profil (petite latence possible)
+  async function fetchUserWithRetry(authId: string, retries = 5): Promise<User | null> {
+    for (let i = 0; i < retries; i++) {
+      const u = await fetchUser(authId);
+      if (u) return u;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    return null;
+  }
+
   useEffect(() => {
     if (!supabase) {
       setLoading(false);
       return;
     }
 
-    // Session initiale
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       if (s?.user) {
@@ -49,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Écouter les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, s) => {
         setSession(s);
@@ -65,43 +72,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Inscription
+  // Inscription : les métadonnées sont passées au trigger via raw_user_meta_data
   async function signUp(
     email: string,
     password: string,
     fullName: string,
+    pseudo: string,
     role: UserRole
   ): Promise<string | null> {
     if (!supabase) return 'Supabase non configuré';
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          pseudo,
+          role,
+        },
+      },
+    });
+
     if (error) return error.message;
     if (!data.user) return 'Erreur lors de la création du compte';
 
-    // Créer le profil dans la table `users`
-    const { error: profileError } = await supabase.from('users').insert({
-      auth_id: data.user.id,
-      email,
-      full_name: fullName,
-      role,
-    });
-    if (profileError) return profileError.message;
-
-    const u = await fetchUser(data.user.id);
+    // Attendre que le trigger PostgreSQL crée le profil users
+    const u = await fetchUserWithRetry(data.user.id);
     setUser(u);
     return null;
   }
 
-  // Connexion
   async function signIn(email: string, password: string): Promise<string | null> {
     if (!supabase) return 'Supabase non configuré';
-
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return error.message;
     return null;
   }
 
-  // Déconnexion
   async function signOut() {
     if (!supabase) return;
     await supabase.auth.signOut();

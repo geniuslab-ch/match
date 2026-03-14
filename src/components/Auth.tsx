@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, UserCheck, Home, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Shield, UserCheck, Home, Eye, EyeOff, AlertCircle, Lock } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import type { UserRole } from '../types';
 
@@ -12,6 +12,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [pseudo, setPseudo] = useState('');
   const [role, setRole] = useState<UserRole>('buyer');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +28,17 @@ export default function Auth() {
     if (isLogin) {
       err = await signIn(email, password);
     } else {
+      if (!pseudo.trim()) {
+        setError('Le pseudo est requis');
+        setLoading(false);
+        return;
+      }
       if (!fullName.trim()) {
         setError('Le nom complet est requis');
         setLoading(false);
         return;
       }
-      err = await signUp(email, password, fullName, role);
+      err = await signUp(email, password, fullName, pseudo, role);
     }
 
     setLoading(false);
@@ -74,10 +80,31 @@ export default function Auth() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Pseudo (inscription uniquement) */}
+            {!isLogin && (
+              <div>
+                <label className="mb-1 block text-sm text-slate-400">
+                  Pseudo <span className="text-cyan-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={pseudo}
+                  onChange={(e) => setPseudo(e.target.value)}
+                  placeholder="InvestorVaud42"
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                />
+                <p className="mt-1 text-xs text-cyan-500/70">
+                  Visible par les autres membres. Choisissez un pseudo discret.
+                </p>
+              </div>
+            )}
+
             {/* Nom complet (inscription uniquement) */}
             {!isLogin && (
               <div>
-                <label className="mb-1 block text-sm text-slate-400">Nom complet</label>
+                <label className="mb-1 block text-sm text-slate-400">
+                  Nom complet <span className="text-cyan-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={fullName}
@@ -85,6 +112,13 @@ export default function Auth() {
                   placeholder="Jean Dupont"
                   className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
+                {/* Notice confidentialité */}
+                <div className="mt-1.5 flex items-start gap-1.5 text-xs text-slate-500">
+                  <Lock className="mt-0.5 h-3 w-3 shrink-0 text-cyan-600" />
+                  <span>
+                    Confidentiel. Votre identité ne sera révélée qu'après acceptation mutuelle d'un match par le propriétaire.
+                  </span>
+                </div>
               </div>
             )}
 

@@ -278,7 +278,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             {user && (
               <>
-                <span className="text-sm text-slate-400">{user.full_name}</span>
+                <span className="text-sm text-slate-400">{user.pseudo || user.full_name}</span>
                 {user.role === 'seller' && (
                   <button
                     onClick={() => navigate('/seller/new')}
