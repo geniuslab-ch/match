@@ -1,13 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY manquantes. ' +
-    'Copiez .env.example en .env.local et remplissez vos clés Supabase.'
-  );
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// En mode démo (sans clés), le client est null.
+// Quand vous connecterez Supabase, remplissez .env.local avec vos clés.
+export const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
