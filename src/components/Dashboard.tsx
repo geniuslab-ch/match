@@ -354,8 +354,27 @@ export default function Dashboard() {
           <div className="py-20 text-center text-slate-500">Chargement...</div>
         ) : (
           <>
-            {/* Score acheteur (visible pour les acheteurs ou en mode démo) */}
-            {(!user || user.role === 'buyer') && <BuyerScoreCard buyer={activeBuyer} />}
+            {/* Acheteur sans profil : bouton pour créer */}
+            {user && user.role === 'buyer' && !buyer && (
+              <div className="rounded-2xl border-2 border-dashed border-cyan-500/40 bg-slate-800 p-8 text-center">
+                <Plus className="mx-auto h-10 w-10 text-cyan-500/60" />
+                <h2 className="mt-3 text-lg font-semibold text-slate-100">
+                  Créez votre profil acheteur
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Complétez vos critères de recherche et vos informations financières pour accéder aux biens off-market.
+                </p>
+                <button
+                  onClick={() => navigate('/buyer/new')}
+                  className="mt-4 rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-600 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 hover:from-cyan-400 hover:to-cyan-500"
+                >
+                  Créer mon profil acheteur
+                </button>
+              </div>
+            )}
+
+            {/* Score acheteur (visible pour les acheteurs avec profil ou en mode démo) */}
+            {(!user || (user.role === 'buyer' && buyer)) && <BuyerScoreCard buyer={activeBuyer} />}
 
             {/* Section matches */}
             <div>

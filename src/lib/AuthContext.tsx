@@ -3,11 +3,16 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import type { User, UserRole } from '../types';
 
+interface SignUpResult {
+  error: string | null;
+  hasSession: boolean;
+}
+
 interface AuthState {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, pseudo: string, role: UserRole) => Promise<string | null>;
+  signUp: (email: string, password: string, fullName: string, pseudo: string, role: UserRole) => Promise<SignUpResult>;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
 }
@@ -48,21 +53,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       if (s?.user) {
-        fetchUser(s.user.id).then((u) => {
-          setUser(u);
-          setLoading(false);
-        });
+        fetchUser(s.user.id)
+          .then((u) => {
+            setUser(u);
+            setLoading(false);
+          })
+          .catch(() => {
+            // Erreur réseau ou table inexistante — ne pas bloquer l'app
+            setLoading(false);
+          });
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+      // getSession a échoué — ne pas bloquer l'app
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, s) => {
         setSession(s);
         if (s?.user) {
-          const u = await fetchUser(s.user.id);
-          setUser(u);
+          try {
+            const u = await fetchUser(s.user.id);
+            setUser(u);
+          } catch {
+            // Silently handle fetch errors
+          }
         } else {
           setUser(null);
         }
@@ -79,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fullName: string,
     pseudo: string,
     role: UserRole
-  ): Promise<string | null> {
-    if (!supabase) return 'Supabase non configuré';
+  ): Promise<SignUpResult> {
+    if (!supabase) return { error: 'Supabase non configuré', hasSession: false };
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -94,13 +111,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
 
-    if (error) return error.message;
-    if (!data.user) return 'Erreur lors de la création du compte';
+    if (error) return { error: error.message, hasSession: false };
+    if (!data.user) return { error: 'Erreur lors de la création du compte', hasSession: false };
+
+    // Stocker la session immédiatement si elle existe (évite la race condition avec onAuthStateChange)
+    if (data.session) {
+      setSession(data.session);
+    }
 
     // Attendre que le trigger PostgreSQL crée le profil users
     const u = await fetchUserWithRetry(data.user.id);
     setUser(u);
-    return null;
+
+    return { error: null, hasSession: !!data.session };
   }
 
   async function signIn(email: string, password: string): Promise<string | null> {

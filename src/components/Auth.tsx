@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, UserCheck, Home, Eye, EyeOff, AlertCircle, Lock } from 'lucide-react';
+import { Shield, UserCheck, Home, Eye, EyeOff, AlertCircle, Lock, CheckCircle2, Mail } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import type { UserRole } from '../types';
 
@@ -17,35 +17,46 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [emailConfirmation, setEmailConfirmation] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    let err: string | null;
-
     if (isLogin) {
-      err = await signIn(email, password);
-    } else {
-      if (!pseudo.trim()) {
-        setError('Le pseudo est requis');
-        setLoading(false);
-        return;
+      const err = await signIn(email, password);
+      setLoading(false);
+      if (err) {
+        setError(err);
+      } else {
+        navigate(role === 'seller' ? '/seller/new' : '/dashboard');
       }
-      if (!fullName.trim()) {
-        setError('Le nom complet est requis');
-        setLoading(false);
-        return;
-      }
-      err = await signUp(email, password, fullName, pseudo, role);
+      return;
     }
 
+    // Inscription
+    if (!pseudo.trim()) {
+      setError('Le pseudo est requis');
+      setLoading(false);
+      return;
+    }
+    if (!fullName.trim()) {
+      setError('Le nom complet est requis');
+      setLoading(false);
+      return;
+    }
+
+    const result = await signUp(email, password, fullName, pseudo, role);
     setLoading(false);
 
-    if (err) {
-      setError(err);
+    if (result.error) {
+      setError(result.error);
+    } else if (!result.hasSession) {
+      // Confirmation email requise — ne pas naviguer
+      setEmailConfirmation(true);
     } else {
+      // Session active, naviguer vers le formulaire
       navigate(role === 'seller' ? '/seller/new' : '/buyer/new');
     }
   }
@@ -71,6 +82,26 @@ export default function Auth() {
           <h2 className="mb-6 text-center text-lg font-semibold text-slate-100">
             {isLogin ? 'Connexion' : 'Créer un compte'}
           </h2>
+
+          {emailConfirmation && (
+            <div className="mb-4 space-y-3 rounded-lg bg-cyan-950 px-4 py-5 text-center">
+              <Mail className="mx-auto h-8 w-8 text-cyan-400" />
+              <p className="text-sm font-medium text-cyan-300">
+                Vérifiez votre boîte email
+              </p>
+              <p className="text-xs text-slate-400">
+                Un lien de confirmation a été envoyé à <strong className="text-slate-200">{email}</strong>.
+                Cliquez dessus pour activer votre compte, puis connectez-vous.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setEmailConfirmation(false); setIsLogin(true); }}
+                className="mt-2 rounded-lg bg-cyan-500/20 px-4 py-2 text-sm text-cyan-400 hover:bg-cyan-500/30"
+              >
+                Se connecter
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-950 px-4 py-3 text-sm text-red-400">
