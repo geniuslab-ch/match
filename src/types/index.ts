@@ -85,10 +85,14 @@ export interface Property {
   surface_m2: number;
   rooms?: number;
   image_url?: string;
-  floor?: number;
+  floor?: string;
   house_type?: string;
   commercial_type?: string;
   situation?: string;
+  exterior?: string[];
+  parking_type?: string;
+  parking_quantity?: number;
+  bonuses?: string[];
   urgency_level: number;
   listing_age_days: number;
   is_conditional_sale: boolean;
@@ -111,6 +115,45 @@ export interface Match {
   // Jointures optionnelles
   property?: Property;
 }
+
+export const FLOOR_OPTIONS = [
+  { value: 'rez_inf', label: 'Rez inférieur' },
+  { value: 'rdc', label: 'Rez-de-chaussée' },
+  { value: 'rez_sup', label: 'Rez supérieur' },
+  ...Array.from({ length: 18 }, (_, i) => ({ value: String(i + 1), label: `${i + 1}${i === 0 ? 'er' : 'e'} étage` })),
+];
+
+export const EXTERIOR_OPTIONS = [
+  'Balcon',
+  'Loggia',
+  'Terrasse',
+  'Toit-terrasse (Rooftop)',
+  'Cour intérieure',
+  'Jardin privatif',
+  'Jardin commun',
+  'Parc / Grand terrain',
+  'Patio',
+  'Place',
+];
+
+export const PARKING_TYPE_OPTIONS = [
+  { value: '', label: 'Aucun' },
+  { value: 'ext', label: 'Place de parc extérieure' },
+  { value: 'carport', label: 'Carport (Couvert à voitures)' },
+  { value: 'collectif', label: 'Place en garage collectif / Box souterrain' },
+  { value: 'box', label: 'Garage individuel (Box)' },
+  { value: 'double_cote', label: 'Double garage (Côte à côte)' },
+  { value: 'double_tandem', label: 'Double garage (En enfilade / Tandem)' },
+  { value: 'atelier', label: 'Atelier / Grand Garage' },
+];
+
+export const BONUS_OPTIONS = [
+  'Sans vis-à-vis',
+  'Plein Sud (Luminosité maximale)',
+  'Vue dégagée (Montagne, lac, parc)',
+  'Clôturé (Sécurité pour animaux/enfants)',
+  'Piscinable (Terrain plat avec accès machines)',
+];
 
 // === Labels pour l'affichage ===
 

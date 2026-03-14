@@ -16,6 +16,9 @@ import {
   Building2,
   MapPin,
   Info,
+  Car,
+  TreePine,
+  Sparkles,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
@@ -25,6 +28,10 @@ import {
   SITUATION_LABELS,
   HOUSE_TYPE_LABELS,
   COMMERCIAL_TYPE_LABELS,
+  FLOOR_OPTIONS,
+  EXTERIOR_OPTIONS,
+  PARKING_TYPE_OPTIONS,
+  BONUS_OPTIONS,
 } from '../types';
 import type { PropertyType, SituationType, HouseType, CommercialType, Property } from '../types';
 import CommuneSelect from './CommuneSelect';
@@ -45,6 +52,10 @@ export default function SellerForm() {
     house_type: '' as HouseType | '',
     commercial_type: '' as CommercialType | '',
     situation: '' as SituationType | '',
+    exterior: [] as string[],
+    parking_type: '',
+    parking_quantity: '1',
+    bonuses: [] as string[],
     urgency_level: '3',
     listing_age_days: '0',
     is_conditional_sale: false,
@@ -68,46 +79,97 @@ export default function SellerForm() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function toggleArrayItem(field: 'exterior' | 'bonuses', item: string) {
+    setForm((prev) => {
+      const arr = prev[field];
+      return {
+        ...prev,
+        [field]: arr.includes(item) ? arr.filter((v) => v !== item) : [...arr, item],
+      };
+    });
+  }
+
+  function toggleExteriorAll() {
+    setForm((prev) => {
+      const allSelected = EXTERIOR_OPTIONS.every((o) => prev.exterior.includes(o));
+      return { ...prev, exterior: allSelected ? [] : [...EXTERIOR_OPTIONS] };
+    });
+  }
+
+  function clearExterior() {
+    setForm((prev) => ({ ...prev, exterior: [] }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!supabase || !user) {
-      setError('Vous devez être connecté pour publier un bien.');
+    if (!supabase) {
+      setError('Supabase non configuré. Contactez l\'administrateur.');
+      return;
+    }
+    if (!user) {
+      setError('Vous devez être connecté pour publier un bien. Rechargez la page et reconnectez-vous.');
       return;
     }
 
     setError(null);
     setLoading(true);
 
-    const payload = {
-      seller_id: user.id,
-      title: form.title,
-      description: form.description || null,
-      property_type: form.property_type,
-      zone: form.zone,
-      price: Number(form.price),
-      surface_m2: Number(form.surface_m2),
-      rooms: form.rooms ? Number(form.rooms) : null,
-      floor: form.property_type === 'apartment' && form.floor ? Number(form.floor) : null,
-      house_type: ['house', 'villa'].includes(form.property_type) && form.house_type ? form.house_type : null,
-      commercial_type: form.property_type === 'commercial' && form.commercial_type ? form.commercial_type : null,
-      situation: form.situation || null,
-      urgency_level: Number(form.urgency_level),
-      listing_age_days: Number(form.listing_age_days),
-      is_conditional_sale: form.is_conditional_sale,
-      conditional_sale_details: form.is_conditional_sale && form.conditional_sale_details ? form.conditional_sale_details : null,
-      rarity_score: Number(form.rarity_score),
-      score: liveScore,
-    };
+    try {
+      const payload: Record<string, unknown> = {
+        seller_id: user.id,
+        title: form.title,
+        description: form.description || null,
+        property_type: form.property_type,
+        zone: form.zone,
+        price: Number(form.price),
+        surface_m2: Number(form.surface_m2),
+        rooms: form.rooms ? Number(form.rooms) : null,
+        urgency_level: Number(form.urgency_level),
+        listing_age_days: Number(form.listing_age_days),
+        is_conditional_sale: form.is_conditional_sale,
+        rarity_score: Number(form.rarity_score),
+        score: liveScore,
+      };
 
-    const { error: err } = await supabase.from('properties').insert(payload);
+      // Champs optionnels — seulement si renseignés
+      if (form.property_type === 'apartment' && form.floor) {
+        payload.floor = form.floor;
+      }
+      if (['house', 'villa'].includes(form.property_type) && form.house_type) {
+        payload.house_type = form.house_type;
+      }
+      if (form.property_type === 'commercial' && form.commercial_type) {
+        payload.commercial_type = form.commercial_type;
+      }
+      if (form.situation) {
+        payload.situation = form.situation;
+      }
+      if (form.exterior.length > 0) {
+        payload.exterior = form.exterior;
+      }
+      if (form.parking_type) {
+        payload.parking_type = form.parking_type;
+        payload.parking_quantity = Number(form.parking_quantity) || 1;
+      }
+      if (form.bonuses.length > 0) {
+        payload.bonuses = form.bonuses;
+      }
+      if (form.is_conditional_sale && form.conditional_sale_details) {
+        payload.conditional_sale_details = form.conditional_sale_details;
+      }
 
-    setLoading(false);
+      const { error: err } = await supabase.from('properties').insert(payload);
 
-    if (err) {
-      setError(err.message);
-    } else {
-      navigate('/dashboard');
+      if (err) {
+        setError(err.message);
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (ex) {
+      setError(ex instanceof Error ? ex.message : 'Erreur inattendue lors de la publication.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -153,9 +215,9 @@ export default function SellerForm() {
         </div>
 
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-950 px-4 py-3 text-sm text-red-400">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
+          <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-950 px-4 py-3 text-sm text-red-400">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
@@ -217,20 +279,22 @@ export default function SellerForm() {
                 />
               </div>
 
-              {/* Champ Étage — Appartement uniquement */}
+              {/* Étage — Appartement uniquement */}
               {form.property_type === 'apartment' && (
                 <div>
                   <label className="mb-1 flex items-center gap-1.5 text-sm text-slate-400">
                     <Building2 className="h-3.5 w-3.5" /> Étage
                   </label>
-                  <input
-                    type="number"
+                  <select
                     value={form.floor}
                     onChange={(e) => update('floor', e.target.value)}
-                    placeholder="3"
-                    min={-2}
-                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
-                  />
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                  >
+                    <option value="">Sélectionner...</option>
+                    {FLOOR_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </div>
               )}
 
@@ -333,6 +397,126 @@ export default function SellerForm() {
                   className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
                 />
               </div>
+            </div>
+          </section>
+
+          {/* Extérieur */}
+          <section className="rounded-2xl border border-slate-700 bg-slate-800 p-6 space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-cyan-400">
+              <TreePine className="mr-1.5 inline h-4 w-4" />
+              Extérieur
+            </h2>
+
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={clearExterior}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                  form.exterior.length === 0
+                    ? 'border-cyan-500 bg-cyan-950/50 text-cyan-400'
+                    : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                }`}
+              >
+                Aucun
+              </button>
+              <button
+                type="button"
+                onClick={toggleExteriorAll}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                  EXTERIOR_OPTIONS.every((o) => form.exterior.includes(o))
+                    ? 'border-cyan-500 bg-cyan-950/50 text-cyan-400'
+                    : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                }`}
+              >
+                Tous
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {EXTERIOR_OPTIONS.map((option) => (
+                <label
+                  key={option}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-all ${
+                    form.exterior.includes(option)
+                      ? 'border-cyan-500 bg-cyan-950/50 text-cyan-300'
+                      : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.exterior.includes(option)}
+                    onChange={() => toggleArrayItem('exterior', option)}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                  />
+                  {option}
+                </label>
+              ))}
+            </div>
+          </section>
+
+          {/* Parking */}
+          <section className="rounded-2xl border border-slate-700 bg-slate-800 p-6 space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-cyan-400">
+              <Car className="mr-1.5 inline h-4 w-4" />
+              Parking
+            </h2>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 text-sm text-slate-400">Type de parking</label>
+                <select
+                  value={form.parking_type}
+                  onChange={(e) => update('parking_type', e.target.value)}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                >
+                  {PARKING_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {form.parking_type && (
+                <div>
+                  <label className="mb-1 text-sm text-slate-400">Quantité</label>
+                  <input
+                    type="number"
+                    value={form.parking_quantity}
+                    onChange={(e) => update('parking_quantity', e.target.value)}
+                    min={1}
+                    max={10}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-slate-100 focus:border-cyan-500 focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Bonus */}
+          <section className="rounded-2xl border border-slate-700 bg-slate-800 p-6 space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-cyan-400">
+              <Sparkles className="mr-1.5 inline h-4 w-4" />
+              Bonus
+            </h2>
+
+            <div className="grid grid-cols-1 gap-2">
+              {BONUS_OPTIONS.map((option) => (
+                <label
+                  key={option}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-all ${
+                    form.bonuses.includes(option)
+                      ? 'border-cyan-500 bg-cyan-950/50 text-cyan-300'
+                      : 'border-slate-600 bg-slate-900 text-slate-400 hover:border-slate-500'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.bonuses.includes(option)}
+                    onChange={() => toggleArrayItem('bonuses', option)}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500"
+                  />
+                  {option}
+                </label>
+              ))}
             </div>
           </section>
 
