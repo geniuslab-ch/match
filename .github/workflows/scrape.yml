@@ -3,14 +3,52 @@ name: Scrape agences immobilières
 on:
   workflow_dispatch:
     inputs:
+      method:
+        description: "Méthode d'extraction"
+        required: true
+        default: "api"
+        type: choice
+        options:
+          - api
+          - playwright
       max_scrolls:
-        description: "Nombre de défilements (plus = plus de résultats)"
+        description: "Scrolls max (Playwright uniquement)"
         required: false
         default: "40"
         type: string
 
 jobs:
-  scrape:
+  scrape-api:
+    if: inputs.method == 'api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Google Places API scraper
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: |
+          python scraper/scrape_places_api.py \
+            --output agences_immobilieres_vaud.csv
+
+      - name: Upload CSV result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agences-immobilieres-vaud
+          path: agences_immobilieres_vaud.csv
+          retention-days: 30
+
+  scrape-playwright:
+    if: inputs.method == 'playwright'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -28,7 +66,7 @@ jobs:
           pip install -r scraper/requirements.txt
           playwright install --with-deps chromium
 
-      - name: Run scraper
+      - name: Run Playwright scraper
         run: |
           python scraper/scrape_agences_vaud.py \
             --headless \
@@ -42,3 +80,12 @@ jobs:
           name: agences-immobilieres-vaud
           path: agences_immobilieres_vaud.csv
           retention-days: 30
+
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug_*.png
+          retention-days: 7
+          if-no-files-found: ignore

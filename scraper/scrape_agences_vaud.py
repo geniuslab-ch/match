@@ -26,12 +26,33 @@ RESULTS_CONTAINER = 'div[role="feed"]'
 RESULT_LINKS = f'{RESULTS_CONTAINER} a[href^="https://www.google.com/maps/place"]'
 
 
+def screenshot(page, name: str):
+    """Sauvegarde une capture d'écran pour le debug."""
+    try:
+        path = f"debug_{name}.png"
+        page.screenshot(path=path, full_page=False)
+        print(f"  [debug] Screenshot → {path}")
+    except Exception:
+        pass
+
+
 def accept_cookies(page):
     """Accepte la bannière cookies Google si elle apparaît."""
     try:
-        btn = page.locator('button:has-text("Tout accepter"), button:has-text("Accept all")')
-        btn.first.click(timeout=5000)
-        page.wait_for_timeout(1000)
+        # Variantes FR / EN / DE de la bannière de consentement
+        selectors = [
+            'button:has-text("Tout accepter")',
+            'button:has-text("Accept all")',
+            'button:has-text("Alle akzeptieren")',
+            'form[action*="consent"] button',
+            'button[aria-label*="Accept"]',
+        ]
+        for sel in selectors:
+            btn = page.locator(sel)
+            if btn.count() > 0:
+                btn.first.click(timeout=5000)
+                page.wait_for_timeout(1500)
+                return
     except (PwTimeout, Exception):
         pass  # pas de bannière
 
@@ -39,12 +60,25 @@ def accept_cookies(page):
 def search_google_maps(page, query: str):
     """Lance la recherche sur Google Maps."""
     page.goto(GOOGLE_MAPS_URL, wait_until="domcontentloaded")
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(3000)
+    screenshot(page, "01_before_cookies")
+
     accept_cookies(page)
+    page.wait_for_timeout(1000)
+    screenshot(page, "02_after_cookies")
+
+    # Vérifie que le champ de recherche est accessible
+    search_box = page.locator(SEARCH_INPUT)
+    if search_box.count() == 0:
+        print("ERREUR : champ de recherche introuvable (Google bloque peut-être l'accès).", file=sys.stderr)
+        screenshot(page, "ERROR_no_searchbox")
+        return False
 
     page.fill(SEARCH_INPUT, query)
     page.click(SEARCH_BUTTON)
-    page.wait_for_timeout(3000)
+    page.wait_for_timeout(4000)
+    screenshot(page, "03_after_search")
+    return True
 
 
 def scroll_results(page, max_scrolls: int = 40):
@@ -167,11 +201,18 @@ def scrape(headless: bool = True, max_scrolls: int = 40, output: str = "agences_
             context = browser.new_context(
                 locale="fr-CH",
                 viewport={"width": 1280, "height": 900},
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/122.0.0.0 Safari/537.36"
+                ),
             )
             page = context.new_page()
 
             print(f"Recherche : '{SEARCH_QUERY}'")
-            search_google_maps(page, SEARCH_QUERY)
+            if not search_google_maps(page, SEARCH_QUERY):
+                browser.close()
+                return count
 
             print("Défilement des résultats…")
             scroll_results(page, max_scrolls=max_scrolls)
