@@ -143,7 +143,7 @@ def extract_from_panel(page, timeout: float = 3000) -> dict | None:
     return info if info["nom"] else None
 
 
-def scrape_query(page, query: str) -> list[dict]:
+def scrape_query(page, query: str, max_scrolls: int = 30) -> list[dict]:
     """Effectue une recherche et extrait tous les résultats."""
     url = build_url(query)
     page.goto(url, wait_until="domcontentloaded")
@@ -169,7 +169,7 @@ def scrape_query(page, query: str) -> list[dict]:
         return [info] if info else []
 
     # Scroller pour charger tous les résultats
-    scroll_results(page)
+    scroll_results(page, max_scrolls=max_scrolls)
 
     # Récupérer tous les liens de résultats
     result_links = page.query_selector_all(RESULT_SELECTOR)
@@ -224,6 +224,12 @@ def main():
         default=False,
         help="Lancer en mode headless (sans fenêtre visible)",
     )
+    parser.add_argument(
+        "--max-scrolls",
+        type=int,
+        default=30,
+        help="Nombre maximum de défilements par requête (défaut: 30)",
+    )
     args = parser.parse_args()
 
     fieldnames = ["nom", "adresse", "telephone", "site_web"]
@@ -252,7 +258,7 @@ def main():
         for i, query in enumerate(QUERIES):
             print(f"\n[{i + 1}/{len(QUERIES)}] Recherche : '{query}'")
             try:
-                results = scrape_query(page, query)
+                results = scrape_query(page, query, max_scrolls=args.max_scrolls)
             except Exception as e:
                 print(f"  ERREUR : {e}", file=sys.stderr)
                 results = []
