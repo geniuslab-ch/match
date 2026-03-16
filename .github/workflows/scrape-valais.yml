@@ -1,0 +1,114 @@
+name: Scrape agences immobilières Valais
+
+on:
+  workflow_dispatch:
+    inputs:
+      method:
+        description: "Méthode d'extraction"
+        required: true
+        default: "api"
+        type: choice
+        options:
+          - api
+          - playwright
+      max_scrolls:
+        description: "Scrolls max (Playwright uniquement)"
+        required: false
+        default: "30"
+        type: string
+
+jobs:
+  scrape-api:
+    if: inputs.method == 'api'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify API key is configured
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_PLACES_API_KEY" ]; then
+            echo "::error::Le secret GOOGLE_PLACES_API_KEY n'est pas configuré."
+            echo ""
+            echo "=== COMMENT CONFIGURER ==="
+            echo "1. Allez sur GitHub → votre repo → Settings → Secrets and variables → Actions"
+            echo "2. Cliquez 'New repository secret'"
+            echo "3. Name: GOOGLE_PLACES_API_KEY"
+            echo "4. Secret: collez votre clé API Google Places"
+            echo ""
+            echo "=== COMMENT OBTENIR LA CLÉ ==="
+            echo "1. https://console.cloud.google.com/"
+            echo "2. Créez un projet → Activez 'Places API (New)'"
+            echo "3. Menu Identifiants → Créer des identifiants → Clé API"
+            exit 1
+          fi
+          echo "Clé API trouvée (${#GOOGLE_PLACES_API_KEY} caractères)"
+
+      - name: Run Google Places API scraper
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: |
+          python scraper/scrape_places_api_valais.py \
+            --output agences_immobilieres_valais.csv
+
+      - name: Upload CSV result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agences-immobilieres-valais
+          path: agences_immobilieres_valais.csv
+          retention-days: 30
+
+  scrape-playwright:
+    if: inputs.method == 'playwright'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r scraper/requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run Playwright scraper
+        run: |
+          python scraper/scrape_gmaps_valais.py \
+            --headless \
+            --max-scrolls ${{ github.event.inputs.max_scrolls }} \
+            --output agences_immobilieres_valais.csv
+
+      - name: Upload CSV result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agences-immobilieres-valais
+          path: agences_immobilieres_valais.csv
+          retention-days: 30
+
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots-valais
+          path: debug_*.png
+          retention-days: 7
+          if-no-files-found: ignore
