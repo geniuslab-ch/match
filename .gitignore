@@ -6,6 +6,10 @@
 .env.production.local
 *.local
 
+# === Python ===
+__pycache__/
+*.pyc
+
 # === Dépendances ===
 node_modules/
 
